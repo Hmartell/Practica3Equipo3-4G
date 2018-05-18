@@ -2,157 +2,138 @@
 #fuses HS, NOFCMEN, NOIESO, PUT, NOBROWNOUT, NOWDT
 #fuses NOPBADEN, NOMCLR, STVREN, NOLVP, NODEBUG
 #use delay(clock=16000000)
-#use fast_io(a)
-#use fast_io(b)
-#use fast_io(c)
 
-#define RX_232        PIN_C7
-#define TX_232        PIN_C6
-#use RS232(BAUD=9600, XMIT=TX_232, RCV=RX_232, BITS=8,PARITY=N, STOP=1)
+#use fast_io (b)
+#use fast_io (d)
 
-char trama[13];
-int contadorDeTrama=0;
-int flagTramallena=0,flagValidacionParte1=0,flagValidacionParte2=0;
-int contadorNum=0,contadorPosicion=1;
-unsigned int numeros[2];
-char operacionAri;
-
-void limpiar_Trama(){
-   for(int i=0;i<contadorDeTrama;i++)
-      trama[i]=0;  
-   contadorDeTrama=0;
-   flagTramallena=0;
-   contadorNum=0;
-   contadorPosicion=1;
-   numeros[0]=0;
-   numeros[1]=0;
-}
-
-void llenarTrama(){
-   if(kbhit()){
-      trama[contadorDeTrama]=getch();
-   if(trama[contadorDeTrama]>= 42 && trama[contadorDeTrama]<=62){
-      printf("%c",trama[contadorDeTrama]);
-      if(trama[contadorDeTrama]== '<'){
-         flagTramallena=1;
-      }
-      contadorDeTrama++;
-   }
-   }   
-}
-void validacionTramaParte1(){
-   printf("\n\n entro a validacion parte 1 \n\r");
-   if(trama[1]== '>' && trama[contadorDeTrama] == '<'){
-       flagValidacionParte1=1;        
-   }
-   else{
-        limpiar_Trama();
-   }
-}
-void validacionTramaParte2(){
-   printf("\n\n entro a validacion parte 2 \n\r");
-   int contadorComas=0;
-   for(int i=2;i<contadorDeTrama-2;i++){
-      if(trama[i]==',')
-         contadorComas++;
-   }
-   
-   if(contadorComas == 2){
-      flagValidacionParte2=1;
-   }
-   else{
-      //mensajeError();
-      limpiar_Trama();
-      return;
-   }
-      
-}
-void obtenerNumeros(){
-   printf("entro a numeros \r");
-   while(trama[contadorPosicion] != ','){
-      if(trama[contadorPosicion]>= '0' && trama[contadorPosicion]<='9'){
-         printf("entro a while \r");
-         numeros[contadorNum]= numeros[contadorNum] * 10 + (trama[contadorPosicion]-'0');
-         printf("%i \r",numeros[contadorNum]);
-         contadorPosicion++;
-      }
-   }
-}
-int operacion(char operacion,int num1[]){
-   printf("entro a operacion \r");
-   long resultado;
-   switch(operacion){
-      case '+':
-         resultado = (long)num1[0] + (long)num1[1];
-         return resultado;
-         break;
-      case '-':
-         resultado = (long)num1[0] - (long)num1[1];
-         return resultado;
-         break;
-      case '*':
-         resultado = (long)num1[0] * (long)num1[1];
-         return resultado;
-         break;
-      case '/':
-         if(num1[1] == 0){
-            resultado = 0x2AAA;
-            return resultado;
-         }
-         else{
-               resultado = (long)num1[0] / (long)num1[1];
-               return resultado;
-            }
-         break;
-   }
-}
-
+   #define RX_232        PIN_C7
+   #define TX_232        PIN_C6
+   #use RS232(BAUD=9600, XMIT=TX_232, RCV=RX_232, BITS=8,PARITY=N, STOP=1)
+   //#use fast_io(c)
 
 void main (void){
-   setup_oscillator(OSC_16MHZ);  
-   set_tris_c(0xCC);   
-   set_tris_b(0xF0);
-   set_tris_a(0xC0);
-   signed long resultadoFinal;
-   
+   setup_oscillator(OSC_16MHZ);
+   printf("Hola Mundo\n");//Puedes usar putc o printf. Revisa la documentaciÃ³n de CCS para ver que mas puedes hacer.
 
+   set_tris_c(0x00);   
+   set_tris_b(0x00);
+   set_tris_a(0x00);
+   
+   char cadena[11];
+   int contador=0, contadorAuxiliar=1;
+   int banderaOperacion=0, banderaImprimir=0, banderaLeer=0;
+   char operador=00;
+   unsigned int operando1=0, operando2=0;
+   signed int32 resultado=0;
+   //<000,000,+>
    while(1){
-      llenarTrama();
-      if(flagTramallena=1){
-         if(contadorDeTrama>=7){
-            validacionTramaParte1();
-            if(flagValidacionParte1=1){
-               validacionTramaParte2();
-               if(flagValidacionParte2==1){
-                  obtenerNumeros();
-                  contadorPosicion++;
-                  contadorNum++;
-                  obtenerNumeros();
-                  contadorPosicion++;
-                  operacionAri = trama[contadorPosicion];
-                  
-                  if(numeros[0]<256 && numeros[1]<256){
-                     resultadoFinal = operacion(operacionAri,numeros);
-                     printf("%li",resultadoFinal);
-                     output_a(resultadoFinal);
-                     output_b(resultadoFinal>>6);
-                     output_c(resultadoFinal>>14);
-                     limpiar_Trama();
-                     
-                  }
-                  
-               }
-               else{
-                  limpiar_Trama();
-               }
-            }
-            else{
-               limpiar_Trama();
-            }
+      if(kbhit()){
+         cadena[contador]=getch();
+         if(cadena[contador]>=48 && cadena[contador]<=57){
+            printf("%c", cadena[contador]);
+            contador++;
          }
          else{
-            limpiar_Trama();
+            if(cadena[contador]== 42 || cadena[contador]== 43  || cadena[contador]== 45 || cadena[contador] == 47){
+               printf("%c", cadena[contador]);
+               contador++;
+            }
+            else{
+               if((cadena[contador]==60 || cadena[contador]== 62) || (cadena[contador]==44)){
+                  if(cadena[contador]==62){
+                  banderaLeer=1;
+                  }
+                  printf("%c", cadena[contador]);
+                  contador++;
+                  }
+               }
+            }
+         }
+         if(banderaLeer==1){
+            printf("Evaluando cadena\n");
+            contadorAuxiliar=1;
+            while (cadena[contadorAuxiliar] != ','){
+               printf("entro a obtener numero\n");
+               operando1 = operando1 * 10 + (cadena[contadorAuxiliar] - '0');
+               contadorAuxiliar++;
+            }
+            contadorAuxiliar++;
+            while (cadena[contadorAuxiliar] != ','){
+               operando2 = operando2 * 10 + (cadena[contadorAuxiliar] - '0');
+               contadorAuxiliar++;
+            }
+            contadorAuxiliar++;
+            if(cadena[contadorAuxiliar]=='+' || cadena[contadorAuxiliar]=='-' || (cadena[contadorAuxiliar]=='*' || cadena[contadorAuxiliar]=='/')){
+               operador = cadena[contadorAuxiliar];
+               banderaOperacion=1;
+            }
+            contadorAuxiliar=0;
+            banderaLeer=0;
+      }
+      
+      if(banderaOperacion == 1){
+         switch(operador){
+            case '+':
+            banderaImprimir=1;
+               printf("Sumando\n");
+               resultado=(long)operando1 + (long)operando2;
+               
+               banderaOperacion=0;
+               
+            break;
+            
+            case '-':  
+            banderaImprimir=1;
+               resultado=(long)operando1 - (long)operando2;
+             
+               banderaOperacion=0;
+               
+            break;
+            
+            case '*':
+            banderaImprimir=1;
+               resultado=(long)operando1 * (long)operando2;
+               
+               banderaOperacion=0;
+            break;
+            
+            case '/':
+               if(operando2==0){
+                  printf(" !!ERROR¡¡\n ");
+                  output_a(0xff);
+                  output_b(0xff>>6);
+                  output_c(0xff>>14);
+                  delay_ms(500);
+                  output_a(0x00);
+                  output_b(0x00>>6);
+                  output_c(0x00>>14);
+                  delay_ms(500);
+                  contador=0;
+                  banderaOperacion=0;
+               }
+               else{
+                  resultado=operando1 / operando2;
+                  banderaImprimir=1;
+                  banderaOperacion=0;
+               }
+            break;
          }
       }
-  }
+      if(banderaImprimir==1){
+         printf("%f", (float) resultado);
+         output_a((long)resultado);
+         output_b((long)resultado >> 6);
+         output_c((long)resultado >> 14)
+         delay_ms(500);
+         banderaImprimir=0;
+         resultado=0;
+         operando1=0;
+         operando2=0;
+         for(int i=0; i<=contador; i++){
+            cadena[i]=00;
+         }
+         contador=0;
+         
+      }
+   }
 }
